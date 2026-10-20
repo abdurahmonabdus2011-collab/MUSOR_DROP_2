@@ -43,11 +43,21 @@ function applyLine(line) {
 }
 
 try {
-    const envPath = path.join(__dirname, '..', '..', '.env');
-    const content = fs.readFileSync(envPath, 'utf8');
-
-    for (const line of content.split(/\r?\n/)) {
-        applyLine(line);
+    // Bir necha joyda .env ni izlaymiz (Render'da Root Directory har xil bo'lishi mumkin)
+    const candidates = [
+        path.join(process.cwd(), '.env'),
+        path.join(__dirname, '..', '..', '.env'),
+        path.join(__dirname, '..', '.env'),
+    ];
+    const envPath = candidates.find((p) => fs.existsSync(p));
+    if (!envPath) {
+        console.warn('.env fayli topilmadi — Render Environment Sozlamalaridagi o\'zgaruvchilar ishlatiladi');
+    } else {
+        const content = fs.readFileSync(envPath, 'utf8');
+        for (const line of content.split(/\r?\n/)) {
+            applyLine(line);
+        }
+        console.log('.env yuklandi:', envPath);
     }
 } catch (error) {
     // .env fayli bo'lmasa, muhit o'zgaruvchilari bilan ishlashga urinamiz
