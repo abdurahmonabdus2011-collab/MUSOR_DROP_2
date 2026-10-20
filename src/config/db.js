@@ -19,14 +19,35 @@ function resolveUri() {
     return uri;
 }
 
-const connectDB = async () => {
+const connectDB = async (retries = 5, delayMs = 5000) => {
+    let uri;
     try {
-        const uri = resolveUri();
-        await mongoose.connect(uri)
-        console.log('Connected to MongoDB'); 
+        uri = resolveUri();
     } catch (error) {
-        console.error('Error connecting to MongoDB:', error)
-        process.exit(1)
+        console.error('Error connecting to MongoDB:', error.message);
+        process.exit(1);
     }
-}
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            await mongoose.connect(uri);
+            console.log('Connected to MongoDB');
+            return;
+        } catch (error) {
+            const left = retries - attempt;
+            console.error(
+                `MongoDB ulanish xatosi (urinish ${attempt}/${retries}): ${error.message}` +
+                (left > 0 ? ` — ${delayMs / 1000}s dan keyin yana urinamiz` : ' — barcha urinishlar tugadi')
+            );
+            if (left > 0) {
+                await new Promise((r) => setTimeout(r, delayMs));
+            }
+        }
+    }
+    // Serverni o'ldirmaymiz: HTTP ishlashda davom etsin, ulanish keyin ham tiklanadi
+    setInterval(() => {
+        mongoose.connect(uri).then(() => console.log('Connected to MongoDB (retry)'))
+            .catch((e) => console.error('MongoDB retry xato:', e.message));
+    }, 30000);
+};
 module.exports = connectDB;

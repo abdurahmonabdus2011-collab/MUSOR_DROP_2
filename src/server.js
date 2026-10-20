@@ -82,8 +82,6 @@ app.post('/api/upload', authenticate, adminOnly, async (req, res) => {
     }
 })
 
-connectDB()
-
 app.use('/api/skins', skinsRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/auth', authRouter)
@@ -100,6 +98,18 @@ if (hasFrontend) {
 }
 
 const PORT = process.env.PORT || 5432
+// HTTP birinchi ko'tariladi — Render'ning tekshiruvi 502 olmasligi uchun
 app.listen(PORT, () => {
     console.log('API: Skins http://localhost:' + PORT + '/api/skins  Users /api/users  Auth /api/auth');
+
+    // DB ulanishi server ko'tarilganidan keyin, qayta-urinish bilan
+    connectDB()
 })
+
+// Node jarayonini yiqitmaslik uchun: ushlab qolmasdan loglaymiz
+process.on('unhandledRejection', (reason) => {
+    console.error('unhandledRejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('uncaughtException:', err);
+});
