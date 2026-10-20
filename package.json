@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "build": "npm install && npm --prefix client install && npm --prefix client run build"
+    "postinstall": "npm --prefix client install && npm --prefix client run build && echo CLIENT BUILD OK",
+    "build": "npm --prefix client install && npm --prefix client run build"
   },
   "keywords": [],
   "author": "",
