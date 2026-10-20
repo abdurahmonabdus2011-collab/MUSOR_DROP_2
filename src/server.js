@@ -4,6 +4,7 @@ require('./config/env')
 const fs = require('fs')
 const path = require('path')
 const express = require('express')
+const mongoose = require('mongoose')
 const cors = require('cors')
 const connectDB = require('./config/db')
 const skinsRouter = require('./routes/skins.routes')
@@ -80,6 +81,31 @@ app.post('/api/upload', authenticate, adminOnly, async (req, res) => {
             res.status(500).json({ message: 'Rasmni saqlashda xatolik', error: err.message })
         }
     }
+})
+
+// Diagnostika: DB holatini ko'rsatadi (Render'da 500 sababini aniqlash uchun)
+const DB_STATES = ['disconnected', 'connected', 'connecting', 'disconnecting']
+app.get('/api/health', (req, res) => {
+    const ready = mongoose.connection.readyState === 1
+    res.status(ready ? 200 : 503).json({
+        ok: true,
+        db: DB_STATES[mongoose.connection.readyState] || 'unknown',
+        dbReady: ready,
+        mongoUriSet: Boolean(process.env.MONGODB_URI || process.env.MONGO_URI),
+        uptimeSec: Math.round(process.uptime()),
+    })
+})
+
+// DB ulanmagan bo'lsa, API so'rovlarini aniq xabar bilan rad etish (jonsiz 500 o'rniga)
+app.use('/api', (req, res, next) => {
+    if (req.path === '/health') return next() // health doim javob beradi
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            message: 'MongoDB ulanmagan',
+            hint: 'Render -> Environment da MONGODB_URI tekshiring, Atlas -> Network Access ga 0.0.0.0/0 qo\'shing',
+        })
+    }
+    next()
 })
 
 app.use('/api/skins', skinsRouter)
